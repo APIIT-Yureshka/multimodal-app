@@ -1,14 +1,13 @@
-name: Deploy test Service
+name: Deploy multimoda-app Service
 
 on:
   push:
     branches:
       - main
-      - dev
 
 jobs:
-  build-and-deploy:
-    runs-on: ${{ github.ref == 'refs/heads/main' && 'Coduza-hi-server' || 'hostingervm' }}
+  deploy:
+    runs-on: self-hosted
 
     steps:
     # 1. Checkout the repository
@@ -42,6 +41,7 @@ jobs:
         git push origin ${{ env.NEW_TAG }}
 
     # 4. Build the Docker image
+
     - name: Build Docker image
       run: sudo docker build -t multimodal-app:${{ env.NEW_TAG }} .
 
