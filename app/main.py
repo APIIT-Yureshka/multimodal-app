@@ -33,7 +33,7 @@ fastapi_app.add_middleware(
 sio = socketio.AsyncServer(async_mode="asgi", cors_allowed_origins="*")
 app = socketio.ASGIApp(sio, other_asgi_app=fastapi_app)
 
-@fastapi_app.post("/api/session/create")
+@fastapi_app.post("/session/create")
 async def api_create_session():
     st = create_session()
     return {"code": st.code}
