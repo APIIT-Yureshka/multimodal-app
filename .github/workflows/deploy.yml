@@ -1,0 +1,61 @@
+name: Deploy test Service
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+
+jobs:
+  build-and-deploy:
+    runs-on: ${{ github.ref == 'refs/heads/main' && 'Coduza-hi-server' || 'hostingervm' }}
+
+    steps:
+    # 1. Checkout the repository
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    # 2. Get the latest Git tag and generate a unique new tag
+    - name: Generate unique tag
+      id: tag
+      run: |
+        git fetch --tags
+        latest_tag=$(git describe --tags --abbrev=0 || echo "v0.0.0")
+        IFS='.' read -r major minor patch <<< "${latest_tag#v}"
+        patch=$((patch + 1))
+        new_tag="v$major.$minor.$patch"
+
+        # Ensure the new tag doesn't already exist
+        while git rev-parse "refs/tags/$new_tag" >/dev/null 2>&1; do
+          patch=$((patch + 1))
+          new_tag="v$major.$minor.$patch"
+        done
+
+        echo "NEW_TAG=$new_tag" >> $GITHUB_ENV
+
+    # 3. Create and push the new tag
+    - name: Create and push tag
+      run: |
+        git config user.name "GitHub Actions"
+        git config user.email "actions@github.com"
+        git tag ${{ env.NEW_TAG }}
+        git push origin ${{ env.NEW_TAG }}
+
+    # 4. Build the Docker image
+    - name: Build Docker image
+      run: sudo docker build -t multimodal-app:${{ env.NEW_TAG }} .
+
+    # 5. Stop and remove the existing container
+    - name: Stop and remove existing container
+      run: |
+        sudo docker stop multimodal-app || true
+        sudo docker rm multimodal-app || true
+
+    # 6. Run the updated container
+    - name: Run updated container
+      run: sudo docker run -d --network multimodal-network -p 9000:9000 --name multimodal-app multimodal-app:${{ env.NEW_TAG }}
+
+    # 7. Clean up old Docker images and containers 
+    - name: Clean up Docker
+      run: |
+        sudo docker system prune -af --filter "until=24h"  # Remove unused images/containers older than 24 hours
