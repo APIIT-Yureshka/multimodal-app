@@ -86,7 +86,7 @@ jobs:
           set -euo pipefail
           sudo docker run -d \
             --network multimodal-network \
-            -p 9000:9000 \
+            -p 9876:9876 \
             --restart unless-stopped \
             --name multimodal-app \
             multimodal-app:${{ env.NEW_TAG }}
